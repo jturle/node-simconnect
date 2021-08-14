@@ -34,6 +34,7 @@ function onOpen(client) {
     const navInfoDefId = client.createDataDefinition([
         ["ATC FLIGHT NUMBER", null, DATATYPE.STRINGV],      // SIMCONNECT_DATATYPE_STRINGV
         ["NAV NAME:1", null, DATATYPE.STRINGV],             // SIMCONNECT_DATATYPE_STRINGV
+        ["NAV IDENT", null, DATATYPE.STRINGV],      // SIMCONNECT_DATATYPE_STRINGV
         ["Plane Latitude", "degrees"],
         ["Plane Longitude", "degrees"],
     ]);
@@ -46,17 +47,41 @@ function onOpen(client) {
         console.log(data)
     });
 
-    client.requestDataOnSimObjectType([
-        ["ATC MODEL", null, DATATYPE.STRINGV], // SIMCONNECT_DATATYPE_STRINGV
-        ["Plane Latitude", "degrees"],
-        ["Plane Longitude", "degrees"]
-    ], { 
-        radius: 10000, 
-        type: SIMOBJECT_TYPE.AIRCRAFT // SIMCONNECT_SIMOBJECT_TYPE_AIRCRAFT
+    const planeInfoId = client.createDataDefinition([
+        ["ATC ID", null, DATATYPE.STRINGV],      // SIMCONNECT_DATATYPE_STRINGV
+        ["ATC FLIGHT NUMBER", null, DATATYPE.STRINGV],      // SIMCONNECT_DATATYPE_STRINGV
+        // ["NAV NAME:1", null, DATATYPE.STRINGV],             // SIMCONNECT_DATATYPE_STRINGV
+        // ["NAV CLOSE IDENT", null, DATATYPE.STRINGV],      // SIMCONNECT_DATATYPE_STRINGV
+        // ["NAV IDENT", null, DATATYPE.STRINGV],      // SIMCONNECT_DATATYPE_STRINGV
+        // ["ADF IDENT", null, DATATYPE.STRINGV],      // SIMCONNECT_DATATYPE_STRINGV
+        // ["TRANSPONDER CODE", null, DATATYPE.INT64],      // SIMCONNECT_DATATYPE_STRINGV
+        // ["TRANSPONDER CODE:0", null, DATATYPE.INT64],      // SIMCONNECT_DATATYPE_STRINGV
+        ["TRANSPONDER CODE:1", null, DATATYPE.INT64],      // SIMCONNECT_DATATYPE_STRINGV
+        ["NAV ACTIVE FREQUENCY:1", null, DATATYPE.FLOAT64],      // SIMCONNECT_DATATYPE_STRINGV
+        // ["NAV ACTIVE FREQUENCY:2", null, DATATYPE.INT64],      // SIMCONNECT_DATATYPE_STRINGV
+    ]);
+    
+    client.requestDataOnSimObject(planeInfoId, {
+        period: PERIOD.ONCE,                // SIMCONNECT_PERIOD_ONCE
+        objectId: SIMOBJECT_TYPE.USER,      // SIMCONNECT_OBJECT_ID_USER
+        flags: 0,                           // SIMCONNECT_DATA_REQUEST_FLAG_DEFAULT
     }, (data) => {
-        // Called for each aircraft
-        console.log(data);
+        console.log('planeInfo',data)
     });
+
+    // client.requestDataOnSimObjectType([
+    //     ["ATC MODEL", null, DATATYPE.STRINGV], // SIMCONNECT_DATATYPE_STRINGV
+    //     ["TRANSPONDER CODE", null, DATATYPE.STRINGV],      // SIMCONNECT_DATATYPE_STRINGV
+    //     ["NAV IDENT", null, DATATYPE.STRINGV],      // SIMCONNECT_DATATYPE_STRINGV
+    //     ["Plane Latitude", "degrees"],
+    //     ["Plane Longitude", "degrees"]
+    // ], { 
+    //     radius: 10000, 
+    //     type: SIMOBJECT_TYPE.AIRCRAFT // SIMCONNECT_SIMOBJECT_TYPE_AIRCRAFT
+    // }, (data) => {
+    //     // Called for each aircraft
+    //     console.log(data);
+    // });
 }
 
 function onQuit() {

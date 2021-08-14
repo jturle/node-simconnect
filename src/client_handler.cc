@@ -7,35 +7,39 @@
 #define getOptionalElement(array, index, type, conversion, fallback) \
     array.Length() > index ? array[index].As<type>().conversion() : fallback;
 
-ClientHandler::ClientHandler(const Napi::CallbackInfo& info) 
-: Napi::ObjectWrap<ClientHandler>(info) {
-    
+ClientHandler::ClientHandler(const Napi::CallbackInfo &info)
+    : Napi::ObjectWrap<ClientHandler>(info)
+{
 }
 
-ClientHandler::~ClientHandler() {
-
+ClientHandler::~ClientHandler()
+{
 }
 
-Napi::Object ClientHandler::init(Napi::Env env) {
+Napi::Object ClientHandler::init(Napi::Env env)
+{
     return DefineClass(env, "Client", {
-        InstanceMethod("requestDataOnSimObject", &ClientHandler::requestDataOnSimObject, napi_enumerable),
-        InstanceMethod("requestDataOnSimObjectType", &ClientHandler::requestDataOnSimObjectType, napi_enumerable),
-        InstanceMethod("createDataDefinition", &ClientHandler::createDataDefinition, napi_enumerable),
-        InstanceMethod("setDataOnSimObject", &ClientHandler::setDataOnSimObject, napi_enumerable),
-        InstanceMethod("subscribeToSystemEvent", &ClientHandler::subscribeToSystemEvent, napi_enumerable),
-        InstanceMethod("requestSystemState", &ClientHandler::requestSystemState, napi_enumerable),
-        InstanceMethod("close", &ClientHandler::close, napi_enumerable),
-    }).New({});
+                                          InstanceMethod("requestDataOnSimObject", &ClientHandler::requestDataOnSimObject, napi_enumerable),
+                                          InstanceMethod("requestDataOnSimObjectType", &ClientHandler::requestDataOnSimObjectType, napi_enumerable),
+                                          InstanceMethod("createDataDefinition", &ClientHandler::createDataDefinition, napi_enumerable),
+                                          InstanceMethod("setDataOnSimObject", &ClientHandler::setDataOnSimObject, napi_enumerable),
+                                          InstanceMethod("subscribeToSystemEvent", &ClientHandler::subscribeToSystemEvent, napi_enumerable),
+                                          InstanceMethod("transmitClientEvent", &ClientHandler::transmitClientEvent, napi_enumerable),
+                                          InstanceMethod("requestSystemState", &ClientHandler::requestSystemState, napi_enumerable),
+                                          InstanceMethod("close", &ClientHandler::close, napi_enumerable),
+                                      })
+        .New({});
 }
 
 bool ClientHandler::open(
-    const std::string& appName, 
-    const Napi::Function& onOpen,
-    const Napi::Function& onQuit,
-    const Napi::Function& onException,
-    const Napi::Function& onError
-) {
-    if (simConnectSession.open(appName)) {
+    const std::string &appName,
+    const Napi::Function &onOpen,
+    const Napi::Function &onQuit,
+    const Napi::Function &onException,
+    const Napi::Function &onError)
+{
+    if (simConnectSession.open(appName))
+    {
         openCallback = Napi::Persistent(onOpen);
         quitCallback = Napi::Persistent(onQuit);
         exceptionCallback = Napi::Persistent(onException);
@@ -49,27 +53,30 @@ bool ClientHandler::open(
     return false;
 }
 
-Napi::Value ClientHandler::requestSystemState(const Napi::CallbackInfo& info) {
+Napi::Value ClientHandler::requestSystemState(const Napi::CallbackInfo &info)
+{
     auto stateName = info[0].As<Napi::String>();
     auto callback = info[1].As<Napi::Function>();
-    
+
     auto requestId = simConnectSession.requestSystemState(stateName.Utf8Value());
     systemStateCallbacks[requestId] = Persistent(callback);
 
     return info.Env().Undefined();
 };
 
-Napi::Value ClientHandler::subscribeToSystemEvent(const Napi::CallbackInfo& info) {
+Napi::Value ClientHandler::subscribeToSystemEvent(const Napi::CallbackInfo &info)
+{
     auto eventName = info[0].As<Napi::String>();
     auto callback = info[1].As<Napi::Function>();
-    
+
     auto eventId = simConnectSession.subscribeToSystemEvent(eventName.Utf8Value());
     systemEventCallbacks[eventId] = Persistent(callback);
 
     return info.Env().Undefined();
 }
 
-Napi::Value ClientHandler::requestDataOnSimObject(const Napi::CallbackInfo& info) {
+Napi::Value ClientHandler::requestDataOnSimObject(const Napi::CallbackInfo &info)
+{
     auto request = info[0];
     auto options = info[1].As<Napi::Object>();
     auto callback = info[2].As<Napi::Function>();
@@ -79,39 +86,47 @@ Napi::Value ClientHandler::requestDataOnSimObject(const Napi::CallbackInfo& info
     auto flags = options.Get("flags").As<Napi::Number>().Uint32Value();
 
     unsigned int requestId;
-    if (request.IsNumber()) {
+    if (request.IsNumber())
+    {
         auto existingDataDefinitionId = request.As<Napi::Number>().Uint32Value();
         requestId = simConnectSession.requestDataOnSimObject(existingDataDefinitionId, objectId, period, flags);
-    } else {
+    }
+    else
+    {
         auto requestedValues = request.As<Napi::Array>();
         requestId = simConnectSession.requestDataOnSimObject(toDatumRequests(requestedValues), objectId, period, flags);
     }
-    
+
     dataRequestCallbacks[requestId] = Persistent(callback);
 
     return info.Env().Undefined();
 }
 
-Napi::Value ClientHandler::createDataDefinition(const Napi::CallbackInfo& info) {
+Napi::Value ClientHandler::createDataDefinition(const Napi::CallbackInfo &info)
+{
     auto requestedValues = info[0].As<Napi::Array>();
     auto definitionId = simConnectSession.createDataDefinition(toDatumRequests(requestedValues));
 
     return Napi::Number::New(info.Env(), definitionId);
 };
 
-Napi::Value ClientHandler::requestDataOnSimObjectType(const Napi::CallbackInfo& info) {
+Napi::Value ClientHandler::requestDataOnSimObjectType(const Napi::CallbackInfo &info)
+{
     auto request = info[0];
     auto options = info[1].As<Napi::Object>();
     auto callback = info[2].As<Napi::Function>();
-        
+
     auto radius = options.Get("radius").As<Napi::Number>().Uint32Value();
     auto type = options.Get("type").As<Napi::Number>().Uint32Value();
 
     unsigned int requestId;
-    if (request.IsNumber()) {
+    if (request.IsNumber())
+    {
         auto existingDataDefinitionId = request.As<Napi::Number>().Uint32Value();
         requestId = simConnectSession.requestDataOnSimObjectType(existingDataDefinitionId, radius, type);
-    } else {
+    }
+    else
+    {
         auto requestedValues = request.As<Napi::Array>();
         requestId = simConnectSession.requestDataOnSimObjectType(toDatumRequests(requestedValues), radius, type);
     }
@@ -121,7 +136,8 @@ Napi::Value ClientHandler::requestDataOnSimObjectType(const Napi::CallbackInfo& 
     return info.Env().Undefined();
 };
 
-Napi::Value ClientHandler::setDataOnSimObject(const Napi::CallbackInfo& info) {
+Napi::Value ClientHandler::setDataOnSimObject(const Napi::CallbackInfo &info)
+{
     auto datumName = info[0].As<Napi::String>();
     auto unitName = info[1].As<Napi::String>();
     auto value = info[2].As<Napi::Number>().DoubleValue();
@@ -131,22 +147,36 @@ Napi::Value ClientHandler::setDataOnSimObject(const Napi::CallbackInfo& info) {
     return info.Env().Undefined();
 };
 
-Napi::Value ClientHandler::close(const Napi::CallbackInfo& info) {
+Napi::Value ClientHandler::transmitClientEvent(const Napi::CallbackInfo &info)
+{
+    auto eventName = info[0].As<Napi::String>();
+    auto objectId = info[1].As<Napi::Number>().Uint32Value();
+    auto data = info[2].As<Napi::Number>().Uint32Value();
+
+    simConnectSession.transmitClientEvent(eventName, objectId, data);
+
+    return info.Env().Undefined();
+};
+
+Napi::Value ClientHandler::close(const Napi::CallbackInfo &info)
+{
     auto success = simConnectSession.close();
 
     return Napi::Boolean::New(info.Env(), success);
 };
 
-void ClientHandler::onOpen(std::shared_ptr<SimInfo> simInfo) {
+void ClientHandler::onOpen(std::shared_ptr<SimInfo> simInfo)
+{
     auto clientHandlerObject = Value();
 
     clientHandlerObject.Set("name", Napi::String::New(Env(), simInfo->name));
     clientHandlerObject.Set("version", Napi::String::New(Env(), simInfo->version));
 
-    openCallback.Call({ clientHandlerObject });
+    openCallback.Call({clientHandlerObject});
 }
 
-void ClientHandler::onException(std::shared_ptr<ExceptionInfo> exceptionInfo) {
+void ClientHandler::onException(std::shared_ptr<ExceptionInfo> exceptionInfo)
+{
     auto obj = Napi::Object::New(Env());
     obj.Set("dwException", Napi::Number::New(Env(), exceptionInfo->exception));
     obj.Set("dwSendID", Napi::Number::New(Env(), exceptionInfo->packetId));
@@ -155,74 +185,92 @@ void ClientHandler::onException(std::shared_ptr<ExceptionInfo> exceptionInfo) {
     exceptionCallback.Call({obj});
 }
 
-void ClientHandler::onError(std::shared_ptr<ErrorInfo> errorInfo) {
+void ClientHandler::onError(std::shared_ptr<ErrorInfo> errorInfo)
+{
     auto obj = Napi::Object::New(Env());
     obj.Set("NTSTATUS", Napi::String::New(Env(), errorInfo->code));
     obj.Set("message", Napi::String::New(Env(), errorInfo->text));
     errorCallback.Call({obj});
 }
 
-void ClientHandler::onQuit() {
+void ClientHandler::onQuit()
+{
     quitCallback.Call({});
 }
 
-void ClientHandler::onSystemState(std::shared_ptr<SimSystemState> simSystemState) {
+void ClientHandler::onSystemState(std::shared_ptr<SimSystemState> simSystemState)
+{
     auto obj = Napi::Object::New(Env());
     obj.Set("integer", Napi::Number::New(Env(), simSystemState->integerValue));
     obj.Set("float", Napi::Number::New(Env(), simSystemState->floatValue));
     obj.Set("string", Napi::String::New(Env(), simSystemState->stringValue.c_str()));
-    
+
     systemStateCallbacks[simSystemState->requestId].Call({obj});
 }
 
-void ClientHandler::onEvent(std::shared_ptr<SimEvent> simEvent) {
+void ClientHandler::onEvent(std::shared_ptr<SimEvent> simEvent)
+{
     auto value = Napi::Number::New(Env(), simEvent->value);
     systemEventCallbacks[simEvent->type].Call({value});
 }
 
-void ClientHandler::onSimobjectData(std::shared_ptr<SimobjectDataBatch> simobjectDataBatch) {
-    auto obj = Napi::Object::New(Env());                
+void ClientHandler::onSimobjectData(std::shared_ptr<SimobjectDataBatch> simobjectDataBatch)
+{
+    auto obj = Napi::Object::New(Env());
 
-    for ( auto const& [datumName, pair] : simobjectDataBatch->values ) {
+    for (auto const &[datumName, pair] : simobjectDataBatch->values)
+    {
         DatumType datumType = pair.first;
         std::shared_ptr<const void> pDatumValue = pair.second;
 
-        switch (datumType) {
-            case DatumType::Int32: {
-                obj.Set(datumName, Napi::Number::New(Env(), *std::static_pointer_cast<const int32_t>(pDatumValue)));
-            } break;
-            case DatumType::Int64: {
-                obj.Set(datumName, Napi::Number::New(Env(), *std::static_pointer_cast<const int64_t>(pDatumValue)));
-            } break;
-            case DatumType::Double: {
-                obj.Set(datumName, Napi::Number::New(Env(), *std::static_pointer_cast<const double>(pDatumValue)));
-            } break;
-            case DatumType::Text: {
-                obj.Set(datumName, Napi::String::New(Env(), std::static_pointer_cast<const std::string>(pDatumValue)->c_str()));
-            } break;
-            default: {
-                obj.Set("UNKNOWN_VALUE", Napi::String::New(Env(), "?"));
-            } break;
+        switch (datumType)
+        {
+        case DatumType::Int32:
+        {
+            obj.Set(datumName, Napi::Number::New(Env(), *std::static_pointer_cast<const int32_t>(pDatumValue)));
+        }
+        break;
+        case DatumType::Int64:
+        {
+            obj.Set(datumName, Napi::Number::New(Env(), *std::static_pointer_cast<const int64_t>(pDatumValue)));
+        }
+        break;
+        case DatumType::Double:
+        {
+            obj.Set(datumName, Napi::Number::New(Env(), *std::static_pointer_cast<const double>(pDatumValue)));
+        }
+        break;
+        case DatumType::Text:
+        {
+            obj.Set(datumName, Napi::String::New(Env(), std::static_pointer_cast<const std::string>(pDatumValue)->c_str()));
+        }
+        break;
+        default:
+        {
+            obj.Set("UNKNOWN_VALUE", Napi::String::New(Env(), "?"));
+        }
+        break;
         }
     }
     dataRequestCallbacks[simobjectDataBatch->id].Call({obj});
 };
 
-std::vector<DatumRequest> ClientHandler::toDatumRequests(Napi::Array requestedValues) {
+std::vector<DatumRequest> ClientHandler::toDatumRequests(Napi::Array requestedValues)
+{
     std::vector<DatumRequest> datumRequests;
-    for (unsigned int i = 0; i < requestedValues.Length(); i++) {
+    for (unsigned int i = 0; i < requestedValues.Length(); i++)
+    {
         auto element = requestedValues.Get(i);
-        if(element.IsArray()) {
+        if (element.IsArray())
+        {
             auto options = element.As<Napi::Array>();
             auto datumName = options.Get("0").As<Napi::String>().Utf8Value();
-            auto unitName = options.Get("1").IsNull() ? std::nullopt : std::optional<std::string>{ options.Get("1").As<Napi::String>().Utf8Value() };
-            auto dataType = options.Get("2").IsUndefined() ? std::nullopt : std::optional<unsigned int>{ options.Get("2").As<Napi::Number>().Uint32Value() }; 
+            auto unitName = options.Get("1").IsNull() ? std::nullopt : std::optional<std::string>{options.Get("1").As<Napi::String>().Utf8Value()};
+            auto dataType = options.Get("2").IsUndefined() ? std::nullopt : std::optional<unsigned int>{options.Get("2").As<Napi::Number>().Uint32Value()};
 
-            datumRequests.push_back({
-                datumName,
-                unitName,
-                dataType
-            });
+            datumRequests.push_back({datumName,
+                                     unitName,
+                                     dataType});
         }
     }
     return datumRequests;

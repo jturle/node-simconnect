@@ -27,6 +27,7 @@ class ClientHandler : public Napi::ObjectWrap<ClientHandler>, EventHandlerInterf
         Napi::Value requestDataOnSimObjectType(const Napi::CallbackInfo& info);
         Napi::Value setDataOnSimObject(const Napi::CallbackInfo& info);
         Napi::Value subscribeToSystemEvent(const Napi::CallbackInfo& info);
+        Napi::Value transmitClientEvent(const Napi::CallbackInfo& info);
         Napi::Value close(const Napi::CallbackInfo& info);
 
         ~ClientHandler();
